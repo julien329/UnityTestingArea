@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class GenerateMap : MonoBehaviour {
+public class GenerateMapA : MonoBehaviour {
 
     public Transform roomPrefab;
     public Transform nullPrefab;
@@ -15,41 +15,36 @@ public class GenerateMap : MonoBehaviour {
 
     List<Coord> tilesCoords;
     Queue<Coord> shuffledTilesCoords;
+    Room[,] map;
 
     Coord mapCenter;
 
+    /* PRIMARY */
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	void Start () {
+    void Start() {
         CreateMap();
-	}
-	
-	public void CreateMap() {
+    }
+
+    public void CreateMap() {
+        Generate();
+        Spawn();
+    }
+
+    public void Generate() {
 
         tilesCoords = new List<Coord>();
-        for(int x = 0; x < mapSize.x; x++) {
+        map = new Room[(int)mapSize.x, (int)mapSize.y];
+
+        for (int x = 0; x < mapSize.x; x++) {
             for(int y = 0; y < mapSize.y; y++) {
                 tilesCoords.Add(new Coord(x, y));
+                map[x, y] = new Room();
             }
         }
 
         shuffledTilesCoords = new Queue<Coord>(Utility.ShuffleArray(tilesCoords.ToArray(), seed));
         mapCenter = new Coord((int)mapSize.x / 2, (int)mapSize.y / 2);
-
-        string mapHolderName = "Generated Map";
-        if (transform.FindChild(mapHolderName)) {
-            DestroyImmediate(transform.FindChild(mapHolderName).gameObject);
-        }
-
-        Transform mapHolder = new GameObject(mapHolderName).transform;
-        mapHolder.parent = transform;
-
-        for(int x = 0; x < mapSize.x; x++) {
-            for(int y = 0; y < mapSize.y; y++) {
-                Vector3 roomPos = CoordToPosition(x, y);
-                Transform newRoom = Instantiate(roomPrefab, roomPos, Quaternion.identity) as Transform;
-                newRoom.parent = mapHolder;
-            }
-        }
 
         bool[,] nullMap = new bool[(int)mapSize.x, (int)mapSize.y];
         int nullTilesCount = (int)(mapSize.x * mapSize.y * (1f - roomPercent));
@@ -63,9 +58,7 @@ public class GenerateMap : MonoBehaviour {
                 currentNullTilesCount++;
 
                 if (roomPercent == 0f || (randomCoord != mapCenter && AllRoomsAccessible(nullMap, currentNullTilesCount))) {
-                    Vector3 nullpos = CoordToPosition(randomCoord.x_, randomCoord.y_);
-                    Transform newNullTile = Instantiate(nullPrefab, nullpos, Quaternion.identity) as Transform;
-                    newNullTile.parent = mapHolder;
+                    map[randomCoord.x_, randomCoord.y_] = null;
                 }
                 else {
                     nullMap[randomCoord.x_, randomCoord.y_] = false;
@@ -79,12 +72,48 @@ public class GenerateMap : MonoBehaviour {
         }
     }
 
+
+    public void Spawn() {
+
+        string mapHolderName = "Generated Map";
+        if (transform.FindChild(mapHolderName)) {
+            DestroyImmediate(transform.FindChild(mapHolderName).gameObject);
+        }
+
+        Transform mapHolder = new GameObject(mapHolderName).transform;
+        mapHolder.parent = transform;
+
+        Transform nullParent = new GameObject("Null").transform;
+        nullParent.parent = mapHolder;
+        Transform roomParent = new GameObject("Room").transform;
+        roomParent.parent = mapHolder;
+
+        for (int x = 0; x < map.GetLength(0); x++) {
+            for (int y = 0; y < map.GetLength(1); y++) {
+                if (map[x, y] != null) {
+                    Vector3 roomPos = CoordToPosition(x, y);
+                    Transform newRoom = Instantiate(roomPrefab, roomPos, Quaternion.identity) as Transform;
+                    newRoom.parent = roomParent;
+                }
+                else {
+                    Vector3 nullpos = CoordToPosition(x, y);
+                    Transform newNullTile = Instantiate(nullPrefab, nullpos, Quaternion.identity) as Transform;
+                    newNullTile.parent = nullParent;
+                }
+            }
+        }
+    }
+
+    /* SECONDARY */
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     bool AllRoomsAccessible(bool[,] nullMap, int currentNullTilesCount) {
-        bool[,] mapFlags = new bool[nullMap.GetLength(0), nullMap.GetLength(1)];
+
+        bool[,] roomMap = new bool[nullMap.GetLength(0), nullMap.GetLength(1)];
         Queue<Coord> roomsToCheck = new Queue<Coord>();
         roomsToCheck.Enqueue(mapCenter);
-        mapFlags[mapCenter.x_, mapCenter.y_] = true;
 
+        roomMap[mapCenter.x_, mapCenter.y_] = true;
         int accessibleRoomsCount = 1;
 
         while (roomsToCheck.Count > 0) {
@@ -94,9 +123,11 @@ public class GenerateMap : MonoBehaviour {
                 for (int y = -1; y <= 1; y++) {
                     Vector2 neighbour = new Vector2(tile.x_ + x, tile.y_ + y);
                     if (x == 0 || y == 0) {
-                        if (neighbour.x >= 0 && neighbour.x < nullMap.GetLength(0) && neighbour.y >= 0 && neighbour.y < nullMap.GetLength(1)) {
-                            if (!mapFlags[(int)neighbour.x, (int)neighbour.y] && !nullMap[(int)neighbour.x, (int)neighbour.y]) {
-                                mapFlags[(int)neighbour.x, (int)neighbour.y] = true;
+                        if (neighbour.x >= 0 && neighbour.x < nullMap.GetLength(0) && neighbour.y >= 0 && neighbour.y < nullMap.GetLength(1)) 
+                        {
+                            if (!roomMap[(int)neighbour.x, (int)neighbour.y] && !nullMap[(int)neighbour.x, (int)neighbour.y]) 
+                            {
+                                roomMap[(int)neighbour.x, (int)neighbour.y] = true;
                                 roomsToCheck.Enqueue(new Coord((int)neighbour.x, (int)neighbour.y));
                                 accessibleRoomsCount++;
                             }
@@ -110,9 +141,11 @@ public class GenerateMap : MonoBehaviour {
         return realAccessibleRoomsCount == accessibleRoomsCount;
     }
 
+
     Vector3 CoordToPosition(int x, int y) {
         return new Vector3(-mapSize.x / 2 + 0.5f + x, -mapSize.y / 2 + 0.5f + y);
     }
+
 
     public Coord GetRandomCoord() {
         Coord random = shuffledTilesCoords.Dequeue();
@@ -120,7 +153,13 @@ public class GenerateMap : MonoBehaviour {
         return random;
     }
 
+    /* STRUCT/CLASS */
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    #pragma warning disable CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
+    #pragma warning disable CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
     public struct Coord {
+
         public int x_;
         public int y_;
 
@@ -136,5 +175,10 @@ public class GenerateMap : MonoBehaviour {
         public static bool operator !=(Coord c1, Coord c2) {
             return !(c1 == c2);
         }
+    }
+
+
+    public class Room {
+        // Stuff Here...
     }
 }
