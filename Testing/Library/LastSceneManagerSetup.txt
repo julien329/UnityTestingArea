@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/Scenes/MapGeneratorA.unity
+- path: Assets/Scenes/MapGeneratorB.unity
   isLoaded: 1
   isActive: 1

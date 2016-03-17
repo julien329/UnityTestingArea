@@ -2,7 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class GenerateMapA : MonoBehaviour {
+public enum FLOOR_TYPE { linear = 2, scatteredMultipath = 3, groupedMultipath = 4 }
+
+public class GenerateMapB : MonoBehaviour {
 
     public Transform roomPrefab;
     public Transform nullPrefab;
@@ -12,12 +14,11 @@ public class GenerateMapA : MonoBehaviour {
     public float roomPercent;
 
     public int seed = 0;
+    public FLOOR_TYPE floorType;
 
     List<Coord> tilesCoords;
     Queue<Coord> shuffledTilesCoords;
     Room[,] map;
-
-    Coord mapCenter;
 
     /* PRIMARY */
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,40 +35,35 @@ public class GenerateMapA : MonoBehaviour {
     public void Generate() {
 
         tilesCoords = new List<Coord>();
-        map = new Room[(int)mapSize.x, (int)mapSize.y];
 
         for (int x = 0; x < mapSize.x; x++) {
-            for(int y = 0; y < mapSize.y; y++) {
+            for (int y = 0; y < mapSize.y; y++) {
                 tilesCoords.Add(new Coord(x, y));
-                map[x, y] = new Room();
             }
         }
 
         shuffledTilesCoords = new Queue<Coord>(Utility.ShuffleArray(tilesCoords.ToArray(), seed));
-        mapCenter = new Coord((int)mapSize.x / 2, (int)mapSize.y / 2);
+        map = new Room[(int)mapSize.x, (int)mapSize.y];
+        map[(int)mapSize.x / 2, (int)mapSize.y / 2] = new Room();
 
-        bool[,] nullMap = new bool[(int)mapSize.x, (int)mapSize.y];
-        int nullTilesCount = (int)(mapSize.x * mapSize.y * (1f - roomPercent));
-        int currentNullTilesCount = 0;
+        int roomCount = (int)(mapSize.x * mapSize.y * roomPercent);
+        int currentRoomCount = 1;
+        int nbEmptyIterations = 0;
 
-        for (int i = 0; i < nullTilesCount; i++) {
+        while(currentRoomCount < roomCount && nbEmptyIterations < shuffledTilesCoords.Count) {
             Coord randomCoord = GetRandomCoord();
+            nbEmptyIterations++;
 
-            if (!nullMap[randomCoord.x_, randomCoord.y_]) {
-                nullMap[randomCoord.x_, randomCoord.y_] = true;
-                currentNullTilesCount++;
+            if(map[randomCoord.x_, randomCoord.y_] == null && HasNeighbour(randomCoord)) {
+                map[randomCoord.x_, randomCoord.y_] = new Room();
 
-                if (roomPercent == 0f || (randomCoord != mapCenter && AllRoomsAccessible(nullMap, currentNullTilesCount))) {
+                if (TooManyNeighbours()) {
                     map[randomCoord.x_, randomCoord.y_] = null;
                 }
                 else {
-                    nullMap[randomCoord.x_, randomCoord.y_] = false;
-                    currentNullTilesCount--;
-                    i--;
+                    nbEmptyIterations = 0;
+                    currentRoomCount++;
                 }
-            }
-            else {
-                i--;
             }
         }
     }
@@ -107,38 +103,46 @@ public class GenerateMapA : MonoBehaviour {
     /* SECONDARY */
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    bool AllRoomsAccessible(bool[,] nullMap, int currentNullTilesCount) {
+    public bool HasNeighbour(Coord randomCoord) {
 
-        bool[,] roomMap = new bool[nullMap.GetLength(0), nullMap.GetLength(1)];
-        Queue<Coord> roomsToCheck = new Queue<Coord>();
-        roomsToCheck.Enqueue(mapCenter);
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                if (x == 0 ^ y == 0) {
+                    if (randomCoord.x_ + x >=0 && randomCoord.x_ + x < mapSize.x && randomCoord.y_ + y >= 0 && randomCoord.y_ + y < mapSize.y) {
+                        if (map[randomCoord.x_ + x, randomCoord.y_ + y] != null)
+                            return true;
+                    }
+                }
+            }           
+        }
+        return false;
+    }
 
-        roomMap[mapCenter.x_, mapCenter.y_] = true;
-        int accessibleRoomsCount = 1;
 
-        while (roomsToCheck.Count > 0) {
-            Coord tile = roomsToCheck.Dequeue();
+    public bool TooManyNeighbours() {
 
-            for (int x = -1; x <= 1; x++) {
-                for (int y = -1; y <= 1; y++) {
-                    Vector2 neighbour = new Vector2(tile.x_ + x, tile.y_ + y);
-                    if (x == 0 || y == 0) {
-                        if (neighbour.x >= 0 && neighbour.x < nullMap.GetLength(0) && neighbour.y >= 0 && neighbour.y < nullMap.GetLength(1)) 
-                        {
-                            if (!roomMap[(int)neighbour.x, (int)neighbour.y] && !nullMap[(int)neighbour.x, (int)neighbour.y]) 
-                            {
-                                roomMap[(int)neighbour.x, (int)neighbour.y] = true;
-                                roomsToCheck.Enqueue(new Coord((int)neighbour.x, (int)neighbour.y));
-                                accessibleRoomsCount++;
+        int nbNeighbours = 0;
+
+        for (int x = 0; x < mapSize.x; x++) {
+            for (int y = 0; y < mapSize.y; y++) {
+                if (map[x, y] != null) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            if (dx == 0 ^ dy == 0) {
+                                if (x + dx >= 0 && x + dx < mapSize.x && y + dy >= 0 && y + dy < mapSize.y) {
+                                    if (map[x + dx, y + dy] != null)
+                                        nbNeighbours++;
+                                }
                             }
                         }
                     }
+                    if (nbNeighbours > (int)floorType)
+                        return true;
+                    nbNeighbours = 0;
                 }
             }
         }
-
-        int realAccessibleRoomsCount = (int)(mapSize.x * mapSize.y - currentNullTilesCount);
-        return realAccessibleRoomsCount == accessibleRoomsCount;
+        return false;
     }
 
 
@@ -166,7 +170,7 @@ public class GenerateMapA : MonoBehaviour {
             y_ = y;
         }
 
-        public static bool operator==(Coord c1, Coord c2) {
+        public static bool operator ==(Coord c1, Coord c2) {
             return c1.x_ == c2.x_ && c1.y_ == c2.y_;
         }
 
