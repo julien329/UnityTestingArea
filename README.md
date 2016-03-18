@@ -6,6 +6,7 @@ Used to test different prototypes planned to be implemented in the game later on
 ## Working Modules
 * Random map generator, version A (Decrement the number of rooms from a full map)
 * Random map generator, version B (Increment the number of rooms from an empty map)
+* A* pathfinding algorithm (player tracked by ennemies)
 
 ## Instructions
 1. Open the project in Unity 5.
