@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class Grid : MonoBehaviour {
 
+    public bool onlyShowPathGizmos;
     public Transform player;
     public LayerMask unwalkableMask;
     public Vector2 gridWorldSize;
@@ -15,6 +16,12 @@ public class Grid : MonoBehaviour {
 
     public List<Node> path;
 
+    // Public accessor
+    public int MaxSize {
+        get { return gridSizeX * gridSizeY; }
+    }
+
+
     // Executed first on play
     void Start() {
         nodeDiameter = nodeRadius * 2;
@@ -25,6 +32,7 @@ public class Grid : MonoBehaviour {
 
         CreateGrid();
     }
+
 
     // Create the grid used for the pathfinding
     void CreateGrid() {
@@ -99,25 +107,40 @@ public class Grid : MonoBehaviour {
         // Draw wireframe around the grid map
         Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, 1, gridWorldSize.y));
 
-        // If the grid is not empty
-        if (grid != null) {
-            // Get the Node the player is on
-            Node playerNode = NodeFromWorldPoint(player.position);
-            // For each Node in the grid
-            foreach (Node node in grid) {
-                // If the Node is walkable, use white. Else, use red
-                Gizmos.color = (node.walkable_) ? Color.white : Color.red;
+        // If bool is checked
+        if (onlyShowPathGizmos) {
+            // If path not null
+            if (path != null) {
+                // For each Node in the path...
+                foreach (Node node in path) {
+                    // Use color black and draw Node
+                    Gizmos.color = Color.black;
+                    Gizmos.DrawCube(node.worldPosition_, Vector3.one * (nodeDiameter - .1f));
+                }
+            }
+        }
+        // If bool unchecked
+        else {
+            // If the grid is not empty
+            if (grid != null) {
+                // Get the Node the player is on
+                Node playerNode = NodeFromWorldPoint(player.position);
+                // For each Node in the grid
+                foreach (Node node in grid) {
+                    // If the Node is walkable, use white. Else, use red
+                    Gizmos.color = (node.walkable_) ? Color.white : Color.red;
 
-                // If player is on the node, use cyan
-                if (playerNode == node) 
-                    Gizmos.color = Color.cyan;
-                // If a path exist, and the Node is in the path, use black
-                if (path != null)
-                    if (path.Contains(node))
-                        Gizmos.color = Color.black;
+                    // If player is on the node, use cyan
+                    if (playerNode == node)
+                        Gizmos.color = Color.cyan;
+                    // If a path exist, and the Node is in the path, use black
+                    if (path != null)
+                        if (path.Contains(node))
+                            Gizmos.color = Color.black;
 
-                // Draw every Node as a cube of the corresponding color
-                Gizmos.DrawCube(node.worldPosition_, Vector3.one * (nodeDiameter - .1f));
+                    // Draw every Node as a cube of the corresponding color
+                    Gizmos.DrawCube(node.worldPosition_, Vector3.one * (nodeDiameter - .1f));
+                }
             }
         }
     }
