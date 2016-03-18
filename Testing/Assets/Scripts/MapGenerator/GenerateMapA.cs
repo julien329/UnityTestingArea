@@ -33,6 +33,7 @@ public class GenerateMapA : MonoBehaviour {
         Spawn();
     }
 
+
     // Generate map layout
     public void Generate() {
 
@@ -80,6 +81,7 @@ public class GenerateMapA : MonoBehaviour {
             }
         }
     }
+
 
     // Instanciates all tiles on the game view.
     public void Spawn() {
@@ -169,10 +171,12 @@ public class GenerateMapA : MonoBehaviour {
         return realAccessibleRoomsCount == accessibleRoomsCount;
     }
 
+
     // Return gameview coordinates from the map array position (middle of the map at (0,0,0))
     Vector3 CoordToPosition(int x, int y) {
         return new Vector3(-mapSize.x / 2 + 0.5f + x, -mapSize.y / 2 + 0.5f + y);
     }
+
 
     // Get next random element
     public Coord GetRandomCoord() {
