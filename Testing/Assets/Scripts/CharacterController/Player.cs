@@ -39,7 +39,7 @@ public class Player : MonoBehaviour {
         Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
         // Get jump input (space) to jump if touching ground below
-        if(Input.GetKeyDown(KeyCode.Space) && controller.collisions.below) {
+        if (Input.GetKeyDown(KeyCode.Space) && controller.collisions.below) {
             velocity.y = jumpVelocity;
         }
 
@@ -49,6 +49,11 @@ public class Player : MonoBehaviour {
         velocity.x = Mathf.SmoothDamp(velocity.x, targetVelocityX, ref velocityXSmoothing, (controller.collisions.below) ? accelerationTimeGrounded : accelerationTimeAirborne);
         // Add gravity force downward to Y velocity
         velocity.y += gravity * Time.deltaTime;
+
+        // If speed too small, set to null
+        if (Mathf.Abs(velocity.x) < 0.1f || (controller.collisions.left && targetVelocityX < 0) || (controller.collisions.right && targetVelocityX > 0))
+            velocity.x = 0;
+
         // Call move to check collisions and translate the player
         controller.Move(velocity * Time.deltaTime);
     }

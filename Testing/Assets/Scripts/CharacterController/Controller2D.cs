@@ -30,8 +30,7 @@ public class Controller2D : MonoBehaviour {
     public void Move(Vector3 velocity) {
         // Get new Raycast origins, reset collision infos and save old velocity
         UpdateRaycastOrigins();
-        collisions.Reset();
-        collisions.velocityOld = velocity;
+        collisions.Reset(velocity);
 
         // If player going down and moving horizontaly, check for descending slopes
         if(velocity.y < 0 && velocity.x != 0)
@@ -152,11 +151,12 @@ public class Controller2D : MonoBehaviour {
 
         // If climbing a slope... (we look for this in order to smooth transition between two different slopes)
         if (collisions.climbingSlope) {
+            collisions.below = true;
             // Get direction sign in X axis
             float directionX = Mathf.Sign(velocity.x);
             // Calculate needed rayLength with requested velocity (distance) and skinWitdh
             rayLength = Mathf.Abs(velocity.x) + skinWidth;
-            // Find first ray origin in the direction the player is moving
+            // Find first ray origin in the direction the player is moving (under player)
             Vector2 rayOrigin = ((directionX == -1) ? raycastOrigins.bottomLeft : raycastOrigins.bottomRight) + Vector2.up * velocity.y;
             // Cast ray with collisonMask looking or specific layer
             RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * directionX, rayLength, collisionMask);
