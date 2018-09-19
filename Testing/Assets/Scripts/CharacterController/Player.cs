@@ -4,16 +4,22 @@ using System.Collections;
 [RequireComponent (typeof(Collider2D))]
 public class Player : MonoBehaviour {
 
-    public float moveSpeed = 6;
-    public float timeToJumpApex = 0.25f;
-    public float jumpHeight = 4f;
-    public float accelerationTimeAirborne;
-    public float accelerationTimeGrounded;
+    public float moveSpeed = 7f;
+    public float wallSlideSpeed = 3f;
+
+    public float wallJumpForceXMultiplier = 0.6f;
+    public float wallJumpForceYMultiplier = 1.2f;
+    public float timeToJumpApex = 0.35f;
+    public float jumpHeight = 3f;
+    public float accelerationTimeAirborne = 0.2f;
+    public float accelerationTimeGrounded = 0.1f;
+    public uint jumpCountMax = 1;
 
     float gravity;
     float jumpVelocity;
     float targetVelocityX;
     float velocityXSmoothing;
+    uint jumpCount = 0;
 
     Vector3 velocity;
     Controller2D controller;
@@ -35,24 +41,44 @@ public class Player : MonoBehaviour {
             velocity.y = 0;
         }
 
+        if (controller.collisions.below) {
+            jumpCount = 0;
+        }
+
         // Get player input in raw states
         Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-
-        // Get jump input (space) to jump if touching ground below
-        if (Input.GetKeyDown(KeyCode.Space) && controller.collisions.below) {
-            velocity.y = jumpVelocity;
-        }
 
         // Set target velocity according to user input
         float targetVelocityX = input.x * moveSpeed;
         // Smooth velocity (use acceleration). Change smoothing value if grounded or airborne
         velocity.x = Mathf.SmoothDamp(velocity.x, targetVelocityX, ref velocityXSmoothing, (controller.collisions.below) ? accelerationTimeGrounded : accelerationTimeAirborne);
+
+        // If the jump key is pressed
+        if (Input.GetKeyDown(KeyCode.Space)) {
+            // If the input is facing the colliding wall, jump up and in the opposite direction 
+            if (!controller.collisions.below && ((controller.collisions.right && input.x > 0) || (controller.collisions.left && input.x < 0))) {
+                velocity.x = -Mathf.Sign(input.x) * wallJumpForceXMultiplier * jumpVelocity;
+                velocity.y = wallJumpForceYMultiplier * jumpVelocity;
+            }
+            // Else jump if there is an available jump left
+            else if (jumpCount < jumpCountMax) {
+                velocity.y = jumpVelocity;
+                jumpCount++;
+            }
+        }
+
         // Add gravity force downward to Y velocity
         velocity.y += gravity * Time.deltaTime;
 
+        // If the input is facing the colliding wall and the player is going down, slide on the wall at clamped velocity.
+        if (velocity.y < 0 && !controller.collisions.below && ((controller.collisions.right && input.x > 0) || (controller.collisions.left && input.x < 0))) {
+            velocity.y = Mathf.Max(velocity.y, -wallSlideSpeed);
+        }
+
         // If speed too small, set to null
-        if (Mathf.Abs(velocity.x) < 0.1f || (controller.collisions.left && targetVelocityX < 0) || (controller.collisions.right && targetVelocityX > 0))
-            velocity.x = 0;
+        if (Mathf.Abs(velocity.x) < 0.1f) {
+            velocity.x = 0f;
+        }
 
         // Call move to check collisions and translate the player
         controller.Move(velocity * Time.deltaTime);

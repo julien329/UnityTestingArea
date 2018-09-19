@@ -90,9 +90,9 @@ public class GenerateMapB : MonoBehaviour {
 
         // Declare mapHolder name and check if already on the map
         string mapHolderName = "Generated Map";
-        if (transform.FindChild(mapHolderName)) {
+        if (transform.Find(mapHolderName)) {
             // Delete object and all children if present on the map
-            DestroyImmediate(transform.FindChild(mapHolderName).gameObject);
+            DestroyImmediate(transform.Find(mapHolderName).gameObject);
         }
 
         // Create mapHolder object (parent of all created tiles) and set it as child of current object
