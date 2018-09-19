@@ -7,7 +7,7 @@ Used to test different prototypes planned to be implemented in the game later on
 * Random map generator, version A (Decrement the number of rooms from a full map)
 * Random map generator, version B (Increment the number of rooms from an empty map)
 * A* pathfinding algorithm (player tracked by ennemies)
-* Custom character controller (not using unity's physic)
+* Custom 2D character controller (not using unity's physic)
 
 ## Instructions
 1. Open the project in Unity 5.
