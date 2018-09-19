@@ -1,7 +1,7 @@
 # UnityTestingArea
 
 ## Description
-Used to test different prototypes planned to be implemented in the game later on (The Last Dungeoneer : https://github.com/julien329/The_Last_Dungeoneer).
+Used to implement different prototypes in Unity that can later be used in other projects.
 
 ## Working Modules
 * Random map generator, version A (Decrement the number of rooms from a full map)
